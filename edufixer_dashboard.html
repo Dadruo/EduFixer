@@ -1,0 +1,257 @@
+
+<style>
+:root{--ef-accent:#1D9E75;--ef-accent-dim:#0F6E56;--ef-new:#378ADD;--ef-doing:#BA7517;--ef-done:#639922;--ef-pri-high:#E24B4A;--ef-pri-med:#EF9F27;--ef-pri-low:#888780}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.ef-app{padding:1rem 0;max-width:700px}
+.ef-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:0.5px solid var(--color-border-tertiary)}
+.ef-logo{display:flex;align-items:center;gap:10px}
+.ef-logo-icon{width:34px;height:34px;background:var(--ef-accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.ef-logo-icon svg{width:18px;height:18px;fill:white}
+.ef-title{font-size:17px;font-weight:500;color:var(--color-text-primary);letter-spacing:-0.3px}
+.ef-subtitle{font-size:12px;color:var(--color-text-secondary);margin-top:1px}
+.ef-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.5rem}
+.ef-stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:0.75rem 1rem}
+.ef-stat-num{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.ef-stat-label{font-size:11px;color:var(--color-text-secondary);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px}
+.ef-stat.new .ef-stat-num{color:var(--ef-new)}
+.ef-stat.doing .ef-stat-num{color:var(--ef-doing)}
+.ef-stat.done .ef-stat-num{color:var(--ef-done)}
+.ef-filters{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.ef-pill{font-size:12px;padding:4px 12px;border-radius:100px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all 0.15s}
+.ef-pill.active{background:var(--ef-accent);border-color:var(--ef-accent);color:white}
+.ef-pill:hover:not(.active){background:var(--color-background-secondary)}
+.ef-list{display:flex;flex-direction:column;gap:8px}
+.ef-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;transition:border-color 0.15s;cursor:pointer}
+.ef-card:hover{border-color:var(--color-border-primary)}
+.ef-card.high{border-left:3px solid var(--ef-pri-high)}
+.ef-card.medium{border-left:3px solid var(--ef-pri-med)}
+.ef-card.low{border-left:3px solid var(--ef-pri-low)}
+.ef-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ef-card-title{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.4}
+.ef-card-badges{display:flex;gap:5px;flex-shrink:0;align-items:center}
+.ef-badge{font-size:11px;padding:2px 8px;border-radius:100px;font-weight:400}
+.ef-badge.new{background:#E6F1FB;color:#185FA5}
+.ef-badge.doing{background:#FAEEDA;color:#854F0B}
+.ef-badge.done{background:#EAF3DE;color:#3B6D11}
+.ef-badge.high{background:#FCEBEB;color:#A32D2D}
+.ef-badge.medium{background:#FAEEDA;color:#854F0B}
+.ef-badge.low{background:#F1EFE8;color:#5F5E5A}
+.ef-card-desc{font-size:12px;color:var(--color-text-secondary);line-height:1.5;margin-bottom:10px}
+.ef-card-meta{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--color-text-tertiary)}
+.ef-card-room{display:flex;align-items:center;gap:4px}
+.ef-room-dot{width:6px;height:6px;border-radius:50%;background:var(--ef-accent)}
+.ef-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--color-border-tertiary)}
+.ef-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all 0.15s}
+.ef-btn:hover{background:var(--color-background-secondary)}
+.ef-btn.primary{background:var(--ef-accent);border-color:var(--ef-accent);color:white}
+.ef-btn.primary:hover{background:var(--ef-accent-dim)}
+.ef-qr-banner{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:14px}
+.ef-qr-box{width:44px;height:44px;border:2px solid var(--ef-accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ef-qr-info{flex:1}
+.ef-qr-title{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.ef-qr-sub{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.ef-view-toggle{display:flex;gap:4px}
+.ef-toggle-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer}
+.ef-toggle-btn.active{background:var(--ef-accent);border-color:var(--ef-accent);color:white}
+.ef-empty{padding:2rem;text-align:center;color:var(--color-text-secondary);font-size:13px}
+</style>
+
+<div class="ef-app">
+  <h2 class="sr-only">EduFixer — přehled nahlášených závad ve škole</h2>
+  
+  <div class="ef-header">
+    <div class="ef-logo">
+      <div class="ef-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18V17l7 4 7-4v-5.82L21 9 12 3zm6 12.34l-6 3.43-6-3.43v-3.6l6 3.27 6-3.27v3.6z"/></svg>
+      </div>
+      <div>
+        <div class="ef-title">EduFixer</div>
+        <div class="ef-subtitle">Školní ticketing systém</div>
+      </div>
+    </div>
+    <div class="ef-view-toggle">
+      <button class="ef-toggle-btn active" onclick="switchView('worker')">Školník</button>
+      <button class="ef-toggle-btn" onclick="switchView('user')">Nahlásit</button>
+    </div>
+  </div>
+
+  <div id="worker-view">
+    <div class="ef-stats">
+      <div class="ef-stat new">
+        <div class="ef-stat-num" id="cnt-new">3</div>
+        <div class="ef-stat-label">Nové</div>
+      </div>
+      <div class="ef-stat doing">
+        <div class="ef-stat-num" id="cnt-doing">2</div>
+        <div class="ef-stat-label">V řešení</div>
+      </div>
+      <div class="ef-stat done">
+        <div class="ef-stat-num" id="cnt-done">8</div>
+        <div class="ef-stat-label">Hotovo</div>
+      </div>
+      <div class="ef-stat">
+        <div class="ef-stat-num">13</div>
+        <div class="ef-stat-label">Celkem</div>
+      </div>
+    </div>
+
+    <div class="ef-filters">
+      <button class="ef-pill active" onclick="filterTickets('all',this)">Vše</button>
+      <button class="ef-pill" onclick="filterTickets('new',this)">Nové</button>
+      <button class="ef-pill" onclick="filterTickets('doing',this)">V řešení</button>
+      <button class="ef-pill" onclick="filterTickets('done',this)">Hotovo</button>
+      <button class="ef-pill" onclick="filterTickets('high',this)">Priorita: Vysoká</button>
+    </div>
+
+    <div class="ef-list" id="ticket-list"></div>
+  </div>
+
+  <div id="user-view" style="display:none">
+    <div class="ef-qr-banner">
+      <div class="ef-qr-box">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ef-accent)" stroke-width="2">
+          <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/>
+          <path d="M21 16h-3v3m0-3v3m3 0h-3M12 3v3m0 3v3m3-6h3m-3 3h3m-9 3v3m0 3h3m3-3h3"/>
+        </svg>
+      </div>
+      <div class="ef-qr-info">
+        <div class="ef-qr-title">QR kód na dveřích místnosti</div>
+        <div class="ef-qr-sub">Naskenuj a místnost se automaticky vyplní</div>
+      </div>
+    </div>
+
+    <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem">
+      <div style="margin-bottom:1rem">
+        <label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:6px">Místnost</label>
+        <select id="room-select" style="width:100%;font-size:14px;padding:8px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary)">
+          <option>Učebna 101</option>
+          <option>Učebna 205</option>
+          <option>Tělocvična</option>
+          <option>Jídelna</option>
+          <option>Chodba — 1. patro</option>
+          <option>WC — přízemí</option>
+        </select>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:6px">Popis závady</label>
+        <textarea id="ticket-desc" placeholder="Např. Rozbité okno, nefunguje světlo..." style="width:100%;font-size:14px;padding:8px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);min-height:90px;resize:vertical;font-family:var(--font-sans)"></textarea>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:6px">Priorita</label>
+        <div style="display:flex;gap:6px">
+          <button class="ef-pill" id="p-low" onclick="setPri('low')" style="flex:1;border-color:#B4B2A9;color:var(--color-text-secondary)">Nízká</button>
+          <button class="ef-pill active" id="p-medium" onclick="setPri('medium')" style="flex:1">Střední</button>
+          <button class="ef-pill" id="p-high" onclick="setPri('high')" style="flex:1;border-color:#F09595;color:#A32D2D">Vysoká</button>
+        </div>
+      </div>
+      <button class="ef-btn primary" style="width:100%;padding:10px;font-size:14px" onclick="submitTicket()">Odeslat závadu →</button>
+      <div id="submit-confirm" style="display:none;margin-top:10px;font-size:12px;color:#3B6D11;text-align:center;padding:8px;background:#EAF3DE;border-radius:var(--border-radius-md)">Závada nahlášena! E-mail s potvrzením byl odeslán.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const tickets=[
+  {id:1,title:"Rozbité okno",desc:"Okno v levé části třídy nejde zavřít, táhne.",room:"Učebna 101",status:"new",priority:"high",time:"před 15 min"},
+  {id:2,title:"Nefunguje projektor",desc:"Projektor se nezapne, zdrojový kabel je v pořádku.",room:"Učebna 205",status:"doing",priority:"high",time:"před 2 hod"},
+  {id:3,title:"Ucpané umyvadlo",desc:"Voda odtéká velmi pomalu, pravděpodobně ucpání.",room:"WC — přízemí",status:"new",priority:"medium",time:"před 3 hod"},
+  {id:4,title:"Vrzající lavice",desc:"Tři lavice v zadní řadě silně vrzají.",room:"Učebna 101",status:"doing",priority:"low",time:"včera"},
+  {id:5,title:"Prasklá dlaždice",desc:"Na hlavní chodbě je prasklá dlaždice, riziko úrazu.",room:"Chodba — 1. patro",status:"new",priority:"high",time:"před 5 hod"},
+];
+
+let currentFilter="all";
+let selectedPri="medium";
+
+function setPri(p){
+  selectedPri=p;
+  ["low","medium","high"].forEach(x=>{
+    const b=document.getElementById("p-"+x);
+    b.classList.remove("active");
+    if(x==="high"){b.style.borderColor="#F09595";b.style.color="#A32D2D";}
+    else if(x==="low"){b.style.borderColor="#B4B2A9";b.style.color="var(--color-text-secondary)";}
+    else{b.style.borderColor="";b.style.color="";}
+  });
+  const sel=document.getElementById("p-"+p);
+  sel.classList.add("active");
+  sel.style.borderColor="";sel.style.color="";
+}
+
+function statusLabel(s){return{new:"Nové",doing:"V řešení",done:"Hotovo"}[s]||s}
+function priLabel(p){return{high:"Vysoká",medium:"Střední",low:"Nízká"}[p]||p}
+
+function renderTickets(){
+  const list=document.getElementById("ticket-list");
+  let filtered=tickets;
+  if(currentFilter==="high") filtered=tickets.filter(t=>t.priority==="high");
+  else if(currentFilter!=="all") filtered=tickets.filter(t=>t.status===currentFilter);
+  
+  if(!filtered.length){list.innerHTML='<div class="ef-empty">Žádné tickety v tomto filtru.</div>';return;}
+  
+  list.innerHTML=filtered.map(t=>`
+    <div class="ef-card ${t.priority}" id="card-${t.id}">
+      <div class="ef-card-top">
+        <div class="ef-card-title">${t.title}</div>
+        <div class="ef-card-badges">
+          <span class="ef-badge ${t.priority}">${priLabel(t.priority)}</span>
+          <span class="ef-badge ${t.status}">${statusLabel(t.status)}</span>
+        </div>
+      </div>
+      <div class="ef-card-desc">${t.desc}</div>
+      <div class="ef-card-meta">
+        <div class="ef-card-room"><div class="ef-room-dot"></div>${t.room}</div>
+        <span>${t.time}</span>
+      </div>
+      ${t.status!=="done"?`
+      <div class="ef-actions">
+        ${t.status==="new"?`<button class="ef-btn primary" onclick="moveTicket(${t.id},'doing')">Zahájit řešení</button>`:""}
+        ${t.status==="doing"?`<button class="ef-btn primary" onclick="moveTicket(${t.id},'done')">Označit hotovo</button>`:""}
+        <button class="ef-btn" onclick="moveTicket(${t.id},'done')">Zavřít</button>
+      </div>`:""}
+    </div>
+  `).join("");
+}
+
+function moveTicket(id,newStatus){
+  const t=tickets.find(x=>x.id===id);
+  if(t){
+    t.status=newStatus;
+    updateCounts();
+    renderTickets();
+  }
+}
+
+function updateCounts(){
+  document.getElementById("cnt-new").textContent=tickets.filter(t=>t.status==="new").length;
+  document.getElementById("cnt-doing").textContent=tickets.filter(t=>t.status==="doing").length;
+  document.getElementById("cnt-done").textContent=tickets.filter(t=>t.status==="done").length;
+}
+
+function filterTickets(f,btn){
+  currentFilter=f;
+  document.querySelectorAll(".ef-pill").forEach(p=>p.classList.remove("active"));
+  btn.classList.add("active");
+  renderTickets();
+}
+
+function switchView(v){
+  document.getElementById("worker-view").style.display=v==="worker"?"block":"none";
+  document.getElementById("user-view").style.display=v==="user"?"block":"none";
+  document.querySelectorAll(".ef-toggle-btn").forEach((b,i)=>{
+    b.classList.toggle("active",(i===0&&v==="worker")||(i===1&&v==="user"));
+  });
+}
+
+function submitTicket(){
+  const desc=document.getElementById("ticket-desc").value.trim();
+  if(!desc)return;
+  const room=document.getElementById("room-select").value;
+  tickets.unshift({id:Date.now(),title:desc.length>40?desc.slice(0,40)+"…":desc,desc,room,status:"new",priority:selectedPri,time:"právě teď"});
+  document.getElementById("ticket-desc").value="";
+  document.getElementById("submit-confirm").style.display="block";
+  updateCounts();
+  setTimeout(()=>document.getElementById("submit-confirm").style.display="none",3000);
+}
+
+renderTickets();
+</script>
