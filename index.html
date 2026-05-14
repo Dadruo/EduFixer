@@ -978,16 +978,11 @@ body::before {
 <div class="toast" id="toast"></div>
 
 <script type="module">
-  // 1. Tady se připojujeme k Firebase (tohle tam jen zkopíruj)
+  // 1. Importy z Firebase CDN
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "firebase/app";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-  
-  // Your web app's Firebase configuration
+  // 2. Konfigurace
   const firebaseConfig = {
     apiKey: "AIzaSyB7A_QYjbCgnbbAGah7CGapgM_VkQESLdE",
     authDomain: "edufixer-7b9df.firebaseapp.com",
@@ -995,34 +990,119 @@ body::before {
     storageBucket: "edufixer-7b9df.firebasestorage.app",
     messagingSenderId: "450278608679",
     appId: "1:450278608679:web:72e07945d3d25a6f982302"
-   };
+  };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-
-  // 3. Spuštění Firebase
+  // 3. Inicializace (pouze jednou!)
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // 4. Tahle funkce pošle věc do databáze
-  window.addTicketFromFirebase = async function() {
+  // Pomocná proměnná pro vybranou prioritu
+  let selectedPriority = 'medium';
+
+  // --- UI FUNKCE (Zobrazování stránek a modalů) ---
+
+  window.showPage = function(pageId, element) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + pageId).classList.add('active');
+    
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if(element) element.classList.add('active');
+    
+    document.getElementById('page-title').innerText = pageId.charAt(0).toUpperCase() + pageId.slice(1);
+  };
+
+  window.openModal = function() {
+    document.getElementById('modal-overlay').classList.add('open');
+  };
+
+  window.closeModal = function() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  };
+
+  window.selectPriModal = function(btn) {
+    document.querySelectorAll('.pri-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedPriority = btn.getAttribute('data-p');
+  };
+
+  // --- FIREBASE FUNKCE (Zápis a čtení) ---
+
+  // Přidání ticketu
+  window.addTicketFromModal = async function() {
     const room = document.getElementById('m-room').value;
     const title = document.getElementById('m-title').value;
+    const desc = document.getElementById('m-desc').value;
     
-    if (!room || !title) return alert('Vyplň místnost a název!');
+    if (!room || !title) {
+        alert('Vyplň prosím aspoň místnost a název!');
+        return;
+    }
 
-    await addDoc(collection(db, "tickets"), {
-      title: title,
-      room: room,
-      status: 'new',
-      createdAt: Date.now()
-    });
-    
-    closeModal();
-    alert('Odesláno do databáze!');
+    try {
+      await addDoc(collection(db, "tickets"), {
+        title: title,
+        room: room,
+        desc: desc,
+        priority: selectedPriority,
+        status: 'new',
+        createdAt: serverTimestamp()
+      });
+      
+      // Vyčistit formulář a zavřít
+      document.getElementById('m-title').value = '';
+      document.getElementById('m-desc').value = '';
+      closeModal();
+      showToast('Závada byla úspěšně přidána!');
+    } catch (e) {
+      console.error("Chyba při přidávání: ", e);
+      alert('Něco se nepovedlo, zkus to znovu.');
+    }
   };
-  
-  // (Zbytek tvých funkcí jako renderTickets atd. pak přidáme, až tohle rozchodíš)
+
+  // Načítání ticketů v reálném čase
+  const q = query(collection(db, "tickets"), orderBy("createdAt", "desc"));
+  onSnapshot(q, (snapshot) => {
+    const ticketList = document.getElementById('ticket-list');
+    ticketList.innerHTML = '';
+    
+    let counts = { new: 0, doing: 0, done: 0 };
+
+    snapshot.forEach((doc) => {
+      const t = doc.data();
+      counts[t.status]++;
+      
+      const card = document.createElement('div');
+      card.className = `ticket-card ${t.priority}`;
+      card.innerHTML = `
+        <div class="ticket-left">
+          <div class="pri-dot"></div>
+          <div class="ticket-id">#${doc.id.substring(0,4)}</div>
+        </div>
+        <div class="ticket-body">
+          <div class="ticket-title">${t.title}</div>
+          <div class="ticket-desc">${t.room} — ${t.desc || 'Bez popisu'}</div>
+        </div>
+        <div class="ticket-right">
+          <span class="status-badge ${t.status}">${t.status}</span>
+        </div>
+      `;
+      ticketList.appendChild(card);
+    });
+
+    // Aktualizace čísel v dashboardu
+    document.getElementById('stat-new').innerText = counts.new;
+    document.getElementById('stat-doing').innerText = counts.doing;
+    document.getElementById('stat-done').innerText = counts.done;
+    document.getElementById('stat-all').innerText = snapshot.size;
+  });
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show', 'success');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
 </script>
 </body>
 </html>
