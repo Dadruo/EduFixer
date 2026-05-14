@@ -982,14 +982,23 @@ body::before {
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
   import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "firebase/app";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+  
+  // Your web app's Firebase configuration
   const firebaseConfig = {
-  apiKey: "AIzaSyB7A_QYjbCgnbbAGah7CGapgM_VkQESLdE",
-  authDomain: "edufixer-7b9df.firebaseapp.com",
-  projectId: "edufixer-7b9df",
-  storageBucket: "edufixer-7b9df.firebasestorage.app",
-  messagingSenderId: "450278608679",
-  appId: "1:450278608679:web:72e07945d3d25a6f982302"
-  };
+    apiKey: "AIzaSyB7A_QYjbCgnbbAGah7CGapgM_VkQESLdE",
+    authDomain: "edufixer-7b9df.firebaseapp.com",
+    projectId: "edufixer-7b9df",
+    storageBucket: "edufixer-7b9df.firebasestorage.app",
+    messagingSenderId: "450278608679",
+    appId: "1:450278608679:web:72e07945d3d25a6f982302"
+   };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
 
   // 3. Spuštění Firebase
   const app = initializeApp(firebaseConfig);
