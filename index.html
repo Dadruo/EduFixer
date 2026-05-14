@@ -977,355 +977,43 @@ body::before {
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script>
-// ============================================================
-// DATA STORE
-// ============================================================
-let tickets = [
-  {id:1, title:"Rozbité okno", desc:"Okno v levé části třídy nejde zavřít, táhne průvan.", room:"Učebna 101", status:"new", priority:"high", time:"před 15 min", email:""},
-  {id:2, title:"Nefunguje projektor", desc:"Projektor se nezapne, zdrojový kabel je v pořádku.", room:"Učebna 205", status:"doing", priority:"high", time:"před 2 hod", email:""},
-  {id:3, title:"Ucpané umyvadlo", desc:"Voda odtéká velmi pomalu, pravděpodobně ucpání v odpadu.", room:"WC — přízemí", status:"new", priority:"medium", time:"před 3 hod", email:""},
-  {id:4, title:"Vrzající lavice", desc:"Tři lavice v zadní řadě silně vrzají, ruší výuku.", room:"Učebna 101", status:"doing", priority:"low", time:"včera 14:30", email:""},
-  {id:5, title:"Prasklá dlaždice", desc:"Na hlavní chodbě je prasklá dlaždice, hrozí riziko úrazu.", room:"Chodba — přízemí", status:"new", priority:"high", time:"před 5 hod", email:""},
-  {id:6, title:"Chybí mýdlo v dávkovači", desc:"Dávkovač mýdla u umyvadla je prázdný.", room:"WC — 1. patro", status:"done", priority:"low", time:"včera 09:00", email:""},
-];
+<script type="module">
+  // 1. Tady se připojujeme k Firebase (tohle tam jen zkopíruj)
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-let nextId = 7;
-let currentFilter = "all";
-let currentRole = "admin";
-let selectedPriReport = "medium";
-let selectedPriModal = "medium";
+  const firebaseConfig = {
+  apiKey: "AIzaSyB7A_QYjbCgnbbAGah7CGapgM_VkQESLdE",
+  authDomain: "edufixer-7b9df.firebaseapp.com",
+  projectId: "edufixer-7b9df",
+  storageBucket: "edufixer-7b9df.firebasestorage.app",
+  messagingSenderId: "450278608679",
+  appId: "1:450278608679:web:72e07945d3d25a6f982302"
+  };
 
-const rooms = ["Učebna 101","Učebna 102","Učebna 201","Učebna 205","Tělocvična","Jídelna","Chodba — přízemí","Chodba — 1. patro","WC — přízemí","WC — 1. patro","Sborovna","Ředitelna"];
+  // 3. Spuštění Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-// ============================================================
-// NAVIGATION
-// ============================================================
-function showPage(name, navEl) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  
-  const titles = {dashboard:'Dashboard',ai:'AI Asistent',report:'Nahlásit závadu',qr:'QR Kódy'};
-  document.getElementById('page-title').textContent = titles[name] || name;
-  
-  if (navEl) {
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    navEl.classList.add('active');
-  }
-  
-  if (name === 'qr') renderQR();
-}
+  // 4. Tahle funkce pošle věc do databáze
+  window.addTicketFromFirebase = async function() {
+    const room = document.getElementById('m-room').value;
+    const title = document.getElementById('m-title').value;
+    
+    if (!room || !title) return alert('Vyplň místnost a název!');
 
-// ============================================================
-// ROLE SWITCHING
-// ============================================================
-function setRole(role, btn) {
-  currentRole = role;
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  
-  const names = {admin:'Jan Novák (Admin)', worker:'Pavel Krejčí', user:'Petra Dvořák'};
-  const initials = {admin:'JN', worker:'PK', user:'PD'};
-  const roles = {admin:'admin', worker:'školník', user:'učitel'};
-  
-  document.getElementById('user-name').textContent = names[role];
-  document.getElementById('user-avatar').textContent = initials[role];
-  document.getElementById('user-role-label').textContent = roles[role];
-  
-  renderTickets();
-}
-
-// ============================================================
-// RENDER TICKETS
-// ============================================================
-function renderTickets() {
-  updateStats();
-  const list = document.getElementById('ticket-list');
-  let filtered = tickets;
-  
-  if (currentFilter === 'high') filtered = tickets.filter(t => t.priority === 'high');
-  else if (currentFilter !== 'all') filtered = tickets.filter(t => t.status === currentFilter);
-  
-  // Sort: high priority first, then by status
-  const priOrder = {high:0, medium:1, low:2};
-  const statusOrder = {new:0, doing:1, done:2};
-  filtered = [...filtered].sort((a,b) => {
-    if (statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status];
-    return priOrder[a.priority] - priOrder[b.priority];
-  });
-  
-  if (!filtered.length) {
-    list.innerHTML = '<div class="empty-state">// žádné tickety v tomto filtru</div>';
-    return;
-  }
-  
-  const canEdit = currentRole === 'admin' || currentRole === 'worker';
-  
-  list.innerHTML = filtered.map(t => `
-    <div class="ticket-card ${t.priority}" id="tc-${t.id}">
-      <div class="ticket-left">
-        <div class="pri-dot"></div>
-        <div class="ticket-id">#${String(t.id).padStart(3,'0')}</div>
-      </div>
-      <div class="ticket-body">
-        <div class="ticket-title">${t.title}</div>
-        <div class="ticket-desc">${t.desc}</div>
-        <div class="ticket-meta">
-          <div class="meta-chip">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            ${t.room}
-          </div>
-          <div class="meta-chip">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            ${t.time}
-          </div>
-          <div class="meta-chip" style="color:${t.priority==='high'?'var(--red)':t.priority==='medium'?'var(--amber)':'var(--text3)'}">
-            ${t.priority==='high'?'● Vysoká':t.priority==='medium'?'● Střední':'● Nízká'}
-          </div>
-        </div>
-      </div>
-      <div class="ticket-right">
-        <span class="status-badge ${t.status}">${t.status==='new'?'Nové':t.status==='doing'?'V řešení':'Hotovo'}</span>
-        ${canEdit && t.status !== 'done' ? `
-        <div class="ticket-actions">
-          ${t.status === 'new' ? `<button class="action-btn go" onclick="moveTicket(${t.id},'doing')">Zahájit</button>` : ''}
-          ${t.status === 'doing' ? `<button class="action-btn go" onclick="moveTicket(${t.id},'done')">Hotovo ✓</button>` : ''}
-          <button class="action-btn close" onclick="deleteTicket(${t.id})">✕</button>
-        </div>` : ''}
-      </div>
-    </div>
-  `).join('');
-}
-
-function updateStats() {
-  const n = tickets.filter(t=>t.status==='new').length;
-  document.getElementById('stat-new').textContent = n;
-  document.getElementById('stat-doing').textContent = tickets.filter(t=>t.status==='doing').length;
-  document.getElementById('stat-done').textContent = tickets.filter(t=>t.status==='done').length;
-  document.getElementById('stat-all').textContent = tickets.length;
-  document.getElementById('new-badge').textContent = n;
-  document.getElementById('new-badge').style.display = n ? 'inline' : 'none';
-}
-
-function filterTickets(f, btn) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  renderTickets();
-}
-
-function moveTicket(id, newStatus) {
-  const t = tickets.find(x => x.id === id);
-  if (t) {
-    t.status = newStatus;
-    renderTickets();
-    showToast(newStatus === 'doing' ? `Ticket #${id} přesunout do řešení` : `Ticket #${id} označen jako hotový`, 'success');
-  }
-}
-
-function deleteTicket(id) {
-  tickets = tickets.filter(t => t.id !== id);
-  renderTickets();
-  showToast(`Ticket #${id} smazán`, 'error');
-}
-
-// ============================================================
-// MODAL
-// ============================================================
-function openModal() {
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-}
-function addTicketFromModal() {
-  const room = document.getElementById('m-room').value;
-  const title = document.getElementById('m-title').value.trim();
-  const desc = document.getElementById('m-desc').value.trim();
-  if (!room || !title) { showToast('Vyplňte místnost a název', 'error'); return; }
-  
-  tickets.unshift({
-    id: nextId++, title, desc: desc || 'Bez popisu.',
-    room, status: 'new', priority: selectedPriModal,
-    time: 'právě teď', email: ''
-  });
-  closeModal();
-  document.getElementById('m-title').value = '';
-  document.getElementById('m-desc').value = '';
-  renderTickets();
-  showToast('Ticket přidán do fronty', 'success');
-  showPage('dashboard', document.querySelector('.nav-item'));
-}
-
-// ============================================================
-// REPORT FORM
-// ============================================================
-function selectPri(btn) {
-  document.querySelectorAll('.report-card .pri-opt').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedPriReport = btn.dataset.p;
-}
-function selectPriModal(btn) {
-  document.querySelectorAll('.modal .pri-opt').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedPriModal = btn.dataset.p;
-}
-
-function submitReport() {
-  const room = document.getElementById('r-room').value;
-  const title = document.getElementById('r-title').value.trim();
-  const desc = document.getElementById('r-desc').value.trim();
-  const email = document.getElementById('r-email').value.trim();
-  
-  if (!room || !title) { showToast('Vyplňte místnost a název závady', 'error'); return; }
-  
-  tickets.unshift({
-    id: nextId++, title, desc: desc || 'Bez popisu.',
-    room, status: 'new', priority: selectedPriReport,
-    time: 'právě teď', email
-  });
-  
-  document.getElementById('r-room').value = '';
-  document.getElementById('r-title').value = '';
-  document.getElementById('r-desc').value = '';
-  document.getElementById('r-email').value = '';
-  document.getElementById('r-success').classList.add('show');
-  setTimeout(() => document.getElementById('r-success').classList.remove('show'), 4000);
-  
-  renderTickets();
-  showToast('Závada nahlášena!', 'success');
-}
-
-// ============================================================
-// QR CODES
-// ============================================================
-function renderQR() {
-  const grid = document.getElementById('qr-grid');
-  grid.innerHTML = rooms.map(room => {
-    const encoded = encodeURIComponent(room);
-    const url = `${location.origin}${location.pathname}?room=${encoded}`;
-    // Simple SVG QR placeholder (visual only)
-    const qrSvg = generateQRPlaceholder(room);
-    return `
-      <div class="qr-card">
-        <div class="qr-code-box">${qrSvg}</div>
-        <div class="qr-room-name">${room}</div>
-        <div class="qr-url">?room=${encoded.slice(0,20)}${encoded.length>20?'...':''}</div>
-        <button class="btn" style="font-size:11px;padding:5px 12px" onclick="copyUrl('${url}')">Kopírovat URL</button>
-      </div>
-    `;
-  }).join('');
-}
-
-function generateQRPlaceholder(seed) {
-  // Deterministic pattern based on seed
-  const hash = seed.split('').reduce((a,c) => a + c.charCodeAt(0), 0);
-  const cells = 9;
-  const size = 84 / cells;
-  let rects = '';
-  for (let r = 0; r < cells; r++) {
-    for (let c = 0; c < cells; c++) {
-      const val = (hash * (r*cells+c+1) * 2654435761) & 0xFFFFFFFF;
-      if ((val % 3 === 0) || (r<3&&c<3) || (r<3&&c>5) || (r>5&&c<3)) {
-        rects += `<rect x="${c*size+2}" y="${r*size+2}" width="${size-1}" height="${size-1}" fill="#111"/>`;
-      }
-    }
-  }
-  return `<svg width="84" height="84" viewBox="0 0 88 88">${rects}
-    <rect x="2" y="2" width="24" height="24" fill="none" stroke="#111" stroke-width="2"/>
-    <rect x="62" y="2" width="24" height="24" fill="none" stroke="#111" stroke-width="2"/>
-    <rect x="2" y="62" width="24" height="24" fill="none" stroke="#111" stroke-width="2"/>
-    <rect x="7" y="7" width="14" height="14" fill="#111"/>
-    <rect x="67" y="7" width="14" height="14" fill="#111"/>
-    <rect x="7" y="67" width="14" height="14" fill="#111"/>
-  </svg>`;
-}
-
-function copyUrl(url) {
-  navigator.clipboard.writeText(url).then(() => showToast('URL zkopírována!', 'success'));
-}
-
-// ============================================================
-// AI ASSISTANT — Real Claude API
-// ============================================================
-async function sendAI() {
-  const input = document.getElementById('ai-input');
-  const msg = input.value.trim();
-  if (!msg) return;
-  
-  const chat = document.getElementById('ai-chat');
-  input.value = '';
-  document.getElementById('ai-send-btn').disabled = true;
-  
-  // User message
-  chat.innerHTML += `<div class="ai-msg user">${escHtml(msg)}</div>`;
-  chat.innerHTML += `<div class="ai-msg assistant loading" id="ai-loading">Přemýšlím...</div>`;
-  chat.scrollTop = chat.scrollHeight;
-  
-  const ticketSummary = tickets.map(t => 
-    `#${t.id} "${t.title}" — ${t.room}, status: ${t.status}, priorita: ${t.priority}`
-  ).join('\n');
-  
-  const systemPrompt = `Jsi AI asistent školního ticketing systému EduFixer. Mluvíš česky. Pomáháš školníkovi a administrátorům spravovat závady ve škole.
-
-Aktuální stav ticketů:
-${ticketSummary}
-
-Statistiky: Nové: ${tickets.filter(t=>t.status==='new').length}, V řešení: ${tickets.filter(t=>t.status==='doing').length}, Hotovo: ${tickets.filter(t=>t.status==='done').length}
-
-Odpovídej stručně a prakticky. Pomáhej s prioritizací, plánováním oprav a analýzou problémů.`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: msg }]
-      })
+    await addDoc(collection(db, "tickets"), {
+      title: title,
+      room: room,
+      status: 'new',
+      createdAt: Date.now()
     });
     
-    const data = await res.json();
-    const reply = data.content?.[0]?.text || 'Omlouvám se, odpověď se nepodařilo načíst.';
-    
-    document.getElementById('ai-loading').remove();
-    chat.innerHTML += `<div class="ai-msg assistant">${escHtml(reply)}</div>`;
-  } catch(e) {
-    document.getElementById('ai-loading').remove();
-    chat.innerHTML += `<div class="ai-msg assistant" style="color:var(--red)">Chyba při připojení k AI. Zkontrolujte připojení.</div>`;
-  }
+    closeModal();
+    alert('Odesláno do databáze!');
+  };
   
-  document.getElementById('ai-send-btn').disabled = false;
-  chat.scrollTop = chat.scrollHeight;
-}
-
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-}
-
-// ============================================================
-// TOAST
-// ============================================================
-function showToast(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// ============================================================
-// INIT
-// ============================================================
-// Check URL for QR room param
-const urlRoom = new URLSearchParams(location.search).get('room');
-if (urlRoom) {
-  document.getElementById('r-room').value = urlRoom;
-  showPage('report', null);
-}
-
-renderTickets();
+  // (Zbytek tvých funkcí jako renderTickets atd. pak přidáme, až tohle rozchodíš)
 </script>
 </body>
 </html>
